@@ -5,8 +5,10 @@ import (
 	"log"
 	"strconv"
 
-	"ReminderBot/internal/db"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/m00n-arch/remind-stuff-bot/internal/buttons"
+	"github.com/m00n-arch/remind-stuff-bot/internal/db"
+	"github.com/m00n-arch/remind-stuff-bot/internal/languages"
 )
 
 type Controller struct {
@@ -28,9 +30,7 @@ func (c *Controller) Run() error {
 	updates := c.bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		// Create a new MessageConfig. We don't have text yet,
-		// so we leave it empty.
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "ру ру")
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "te-hee")
 
 		userState, err := c.userDB.GetState(strconv.Itoa(int(update.Message.Chat.ID)))
 		if err != nil {
@@ -40,8 +40,16 @@ func (c *Controller) Run() error {
 
 		// Extract the command from the Message.
 		switch {
+		case update.Message.Text == "/start":
+			msg.ReplyMarkup = buttons.MainMenuButtons
+			msg.Text = "Выберите интересующее вас действие"
+		case update.Message.Text == languages.NewReminderButton:
+			msg.ReplyMarkup = buttons.Cancel
+			msg.Text = languages.DateTimeFormat
+		case update.Message.Text == languages.CancelButton
+			// handle later
 		case update.Message.Text == "/help":
-			msg.Text = "Привет! Я бот-напоминатель. Используй команду /setreminder, чтобы установить напоминание."
+			msg.Text = "Привет! Я бот-напоминатель."
 		case update.Message.Text == "/create":
 			err := c.userDB.UpdateState(strconv.FormatInt(update.Message.Chat.ID, 10), "createState")
 			if err != nil {

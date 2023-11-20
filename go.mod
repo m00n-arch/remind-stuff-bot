@@ -1,4 +1,4 @@
-module ReminderBot
+module github.com/m00n-arch/remind-stuff-bot
 
 go 1.21.1
 
