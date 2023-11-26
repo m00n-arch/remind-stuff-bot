@@ -1,19 +1,18 @@
 package db
 
 import (
+	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"time"
 )
 
 type Alert struct {
-	date      time.Time
-	content   string
-	userID    string
-	messageID int
-	period    time.Duration
+	date    time.Time
+	content string
+	userID  string
+	period  time.Duration
+	alertID string
 }
 
 type AlertsDB struct {
@@ -32,37 +31,25 @@ func NewAlertDB(path string) (*AlertsDB, error) {
 		alerts: nil,
 	}
 
-	return a, a.load()
+	return a, nil
 }
 
-func (a *AlertsDB) GetState(userIDToFind string) (string, error) {
-	// for i := range a.alerts {
-	// 	if a.alerts[i].userID == userIDToFind {
-	// 		return a.alerts[i].state, nil
-	// 	}
-	// }
-	return StartState, a.UpdateState(userIDToFind, StartState)
-}
+func (a *AlertsDB) AddAlert(alert Alert) error {
 
-func (a *AlertsDB) UpdateState(userIDToFind string, newState string) error {
-	// for i := range a.alerts {
-	// 	if a.alerts[i].userID == userIDToFind {
-	// 		a.alerts[i].state = newState
-	// 		return a.save()
-	// 	}
-	// }
-	// a.alerts = append(a.alerts, status{
-	// 	userID: userIDToFind,
-	// 	state:  newState,
-	// })
+	a.alerts = append(a.alerts, alert)
 
-	return a.save()
+	err := a.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *AlertsDB) save() error {
-	_, err := a.f.Seek(0, 0)
+	_, err := a.f.Seek(0, 2)
 	if err != nil {
-		return fmt.Errorf("can't reset offset: %w", err)
+		return fmt.Errorf("can't reset file offset: %w", err)
 	}
 
 	err = a.f.Truncate(0)
@@ -70,46 +57,67 @@ func (a *AlertsDB) save() error {
 		return fmt.Errorf("can't truncate the file: %w", err)
 	}
 
-	// for i := range a.alerts {
-	// 	_, err := a.f.Write([]byte(fmt.Sprintf("%s,%s\n", a.alerts[i].userID, a.alerts[i].state)))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
+	for i := range a.alerts {
+		_, err := a.f.Write([]byte(fmt.Sprintf("%s,%s,%s,%s,%s\n",
+			a.alerts[i].alertID,
+			a.alerts[i].date,
+			a.alerts[i].userID,
+			a.alerts[i].content,
+			a.alerts[i].period),
+		))
+		if err != nil {
+			return fmt.Errorf("can't save string: %w", err)
+		}
+	}
 	return a.f.Sync()
+
 }
 
 func (a *AlertsDB) load() error {
-	a.alerts = nil
-
-	_, err := a.f.Seek(0, 0)
+	reader := csv.NewReader(a.f)
+	records, err := reader.ReadAll()
 	if err != nil {
 		return err
 	}
-	data, err := io.ReadAll(a.f)
-	if err != nil {
-		return err
-	}
-	str := string(data)
 
-	rows := strings.Split(str, "\n")
-
-	for i := range rows {
-		if i == len(rows)-1 {
-			continue
+	for _, record := range records {
+		date, err := time.Parse(time.RFC3339, record[0])
+		if err != nil {
+			return err
 		}
 
-		// cells := strings.Split(rows[i], ",")
-		// if len(cells) != 2 {
-		// 	return fmt.Errorf("invalid cells count")
-		// }
-		// s := status{userID: cells[0], state: cells[1]}
-		// a.alerts = append(a.alerts, s)
+		period, err := time.ParseDuration(record[4])
+		if err != nil {
+			return err
+		}
+
+		alert := Alert{
+			date:    date,
+			content: record[1],
+			userID:  record[2],
+			period:  period,
+			alertID: record[5],
+		}
+
+		a.alerts = append(a.alerts, alert)
 	}
 
 	return nil
 }
+
+func (a *AlertsDB) GetAlerts(userIDToFind string) ([]Alert, error) {
+	res := make([]Alert, 0)
+
+	for i := range a.alerts {
+		if a.alerts[i].userID == userIDToFind {
+			res = append(res, a.alerts[i])
+		}
+	}
+
+	return res, nil
+}
+
+// func (a *AlertsDB) UpdateAlert()
 
 func accurate() {
 	time.Parse("02.01.2006 15:04", "")

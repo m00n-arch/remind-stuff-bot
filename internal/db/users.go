@@ -73,7 +73,7 @@ func (u *UsersDB) save() error {
 	for i := range u.users {
 		_, err := u.f.Write([]byte(fmt.Sprintf("%s,%s\n", u.users[i].userID, u.users[i].state)))
 		if err != nil {
-			return err
+			return fmt.Errorf("can't save string: %w", err)
 		}
 	}
 
