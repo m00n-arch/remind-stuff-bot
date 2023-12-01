@@ -70,7 +70,6 @@ func (a *AlertsDB) save() error {
 		}
 	}
 	return a.f.Sync()
-
 }
 
 func (a *AlertsDB) load() error {
@@ -117,8 +116,11 @@ func (a *AlertsDB) GetAlerts(userIDToFind string) ([]Alert, error) {
 	return res, nil
 }
 
-// func (a *AlertsDB) UpdateAlert()
-
-func accurate() {
-	time.Parse("02.01.2006 15:04", "")
+func (a *AlertsDB) UpdateAlert(alert Alert) error {
+	for i := range a.alerts {
+		if a.alerts[i].alertID == alert.alertID {
+			a.alerts[i] = alert
+		}
+	}
+	return a.save()
 }

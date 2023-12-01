@@ -6,20 +6,21 @@ import (
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/m00n-arch/remind-stuff-bot/internal/buttons"
 	"github.com/m00n-arch/remind-stuff-bot/internal/db"
 	"github.com/m00n-arch/remind-stuff-bot/internal/languages"
 )
 
 type Controller struct {
-	userDB *db.UsersDB
-	bot    *tgbotapi.BotAPI
+	userDB  *db.UsersDB
+	alertDB *db.AlertsDB
+	bot     *tgbotapi.BotAPI
 }
 
-func NewController(userDB *db.UsersDB, bot *tgbotapi.BotAPI) *Controller {
+func NewController(userDB *db.UsersDB, alertDB *db.AlertsDB, bot *tgbotapi.BotAPI) *Controller {
 	return &Controller{
-		bot:    bot,
-		userDB: userDB,
+		bot:     bot,
+		userDB:  userDB,
+		alertDB: alertDB,
 	}
 }
 
@@ -30,6 +31,8 @@ func (c *Controller) Run() error {
 	updates := c.bot.GetUpdatesChan(u)
 
 	for update := range updates {
+
+		// todo: ВОТ ЗДЕСЬ ПОМЕНЯТЬ ГОВНО, ИНАЧЕ НИЧЕГО НЕ РАБОТАЕТ
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "te-hee")
 
 		userState, err := c.userDB.GetState(strconv.Itoa(int(update.Message.Chat.ID)))
@@ -41,15 +44,11 @@ func (c *Controller) Run() error {
 		// Extract the command from the Message.
 		switch {
 		case update.Message.Text == "/start":
-			msg.ReplyMarkup = buttons.MainMenuButtons
-			msg.Text = "Выберите интересующее вас действие"
+			c.StartHandler(update)
 		case update.Message.Text == languages.NewReminderButton:
-			msg.ReplyMarkup = buttons.Cancel
-			msg.Text = languages.DateTimeFormat
-		case update.Message.Text == languages.CancelButton
-			// handle later
-		case update.Message.Text == "/help":
-			msg.Text = "Привет! Я бот-напоминатель."
+			c.NewRemHandler(update)
+		case update.Message.Text == languages.CancelButton:
+			c.CancelHandler(update)
 		case update.Message.Text == "/create":
 			err := c.userDB.UpdateState(strconv.FormatInt(update.Message.Chat.ID, 10), "createState")
 			if err != nil {

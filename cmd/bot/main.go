@@ -29,7 +29,12 @@ func run() error {
 		return err
 	}
 
-	c := controller.NewController(udb, bot)
+	adb, err := db.NewAlertDB("alert.csv")
+	if err != nil {
+		return err
+	}
+
+	c := controller.NewController(udb, adb, bot)
 
 	return c.Run()
 }
