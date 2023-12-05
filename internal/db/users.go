@@ -31,10 +31,6 @@ func NewUserDB(path string) (*UsersDB, error) {
 	return u, u.load()
 }
 
-const (
-	StartState = "start"
-)
-
 func (u *UsersDB) GetState(userIDToFind string) (string, error) {
 	for i := range u.users {
 		if u.users[i].userID == userIDToFind {

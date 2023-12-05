@@ -40,26 +40,21 @@ func (c *Controller) Run() error {
 		// Extract the command from the Message.
 		switch {
 		case update.Message.Text == "/start":
-			c.StartHandler(update)
+			err = c.StartHandler(update)
 		case update.Message.Text == languages.NewReminderButton:
-			c.NewRemHandler(update)
+			err = c.NewRemHandler(update)
 		case update.Message.Text == languages.CancelButton:
-			err := c.CancelHandler(update)
-			if err != nil {
-				return err
-			}
-		case update.Message.Text == "/create":
-			err := c.StateHandler(update)
-			if err != nil {
-				return err
-			}
-		case userState == "createState":
-			c.DateHandler(update)
+			err = c.CancelHandler(update)
+		case userState == db.CreateState:
+			err = c.DateHandler(update)
+		case userState == db.CreateTextState:
+			err = c.TextHandler(update)
 		default:
-			c.DefaultHandler(update)
+			err = c.DefaultHandler(update)
 		}
-
+		if err != nil {
+			return err
+		}
 	}
-
 	return fmt.Errorf("unreachable")
 }
