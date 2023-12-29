@@ -2,17 +2,18 @@ package db
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 )
 
 type Alert struct {
-	date    time.Time
-	content string
-	userID  string
-	period  time.Duration
-	alertID string
+	Date    time.Time
+	Content string
+	UserID  string
+	Period  time.Duration
+	AlertID string
 }
 
 type AlertsDB struct {
@@ -21,7 +22,11 @@ type AlertsDB struct {
 }
 
 func NewAlertDB(path string) (*AlertsDB, error) {
+
 	f, err := os.OpenFile(path, os.O_RDWR, 0666)
+	if errors.Is(err, os.ErrNotExist) {
+		f, err = os.Create(path)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +63,15 @@ func (a *AlertsDB) save() error {
 	}
 
 	for i := range a.alerts {
-		_, err := a.f.Write([]byte(fmt.Sprintf("%s,%s,%s,%s,%s\n",
-			a.alerts[i].alertID,
-			a.alerts[i].date,
-			a.alerts[i].userID,
-			a.alerts[i].content,
-			a.alerts[i].period),
-		))
+		quest := fmt.Sprintf("%s,%s,%s,%s,%s\n",
+			a.alerts[i].AlertID,
+			a.alerts[i].Date.Format("02.01.2006 15:04"),
+			a.alerts[i].UserID,
+			a.alerts[i].Content,
+			a.alerts[i].Period)
+
+		_, err := a.f.Write([]byte(quest))
+
 		if err != nil {
 			return fmt.Errorf("can't save string: %w", err)
 		}
@@ -91,11 +98,11 @@ func (a *AlertsDB) load() error {
 		}
 
 		alert := Alert{
-			date:    date,
-			content: record[1],
-			userID:  record[2],
-			period:  period,
-			alertID: record[5],
+			Date:    date,
+			Content: record[1],
+			UserID:  record[2],
+			Period:  period,
+			AlertID: record[5],
 		}
 
 		a.alerts = append(a.alerts, alert)
@@ -108,7 +115,7 @@ func (a *AlertsDB) GetAlerts(userIDToFind string) ([]Alert, error) {
 	res := make([]Alert, 0)
 
 	for i := range a.alerts {
-		if a.alerts[i].userID == userIDToFind {
+		if a.alerts[i].UserID == userIDToFind {
 			res = append(res, a.alerts[i])
 		}
 	}
@@ -118,7 +125,7 @@ func (a *AlertsDB) GetAlerts(userIDToFind string) ([]Alert, error) {
 
 func (a *AlertsDB) UpdateAlert(alert Alert) error {
 	for i := range a.alerts {
-		if a.alerts[i].alertID == alert.alertID {
+		if a.alerts[i].AlertID == alert.AlertID {
 			a.alerts[i] = alert
 		}
 	}

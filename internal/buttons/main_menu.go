@@ -10,6 +10,6 @@ var MainMenuButtons = tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButton(languages.NewReminderButton),
 	),
 	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton(languages.NewExistingReminderButton),
+		tgbotapi.NewKeyboardButton(languages.ExistingReminderButton),
 	),
 )

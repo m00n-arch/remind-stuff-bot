@@ -30,19 +30,18 @@ func (c *Controller) Run() error {
 	updates := c.bot.GetUpdatesChan(u)
 
 	for update := range updates {
-
 		userState, err := c.userDB.GetState(strconv.Itoa(int(update.Message.Chat.ID)))
 		if err != nil {
-			// handle later
 			continue
 		}
 
-		// Extract the command from the Message.
 		switch {
 		case update.Message.Text == "/start":
 			err = c.StartHandler(update)
 		case update.Message.Text == languages.NewReminderButton:
 			err = c.NewRemHandler(update)
+		case update.Message.Text == languages.ExistingReminderButton:
+			err = c.ExistingRemHandler(update)
 		case update.Message.Text == languages.CancelButton:
 			err = c.CancelHandler(update)
 		case userState == db.CreateState:
@@ -53,7 +52,10 @@ func (c *Controller) Run() error {
 			err = c.DefaultHandler(update)
 		}
 		if err != nil {
-			return err
+			err = c.ErrorHandler(update, err)
+			if err != nil {
+				return fmt.Errorf("can't send message: %w", err)
+			}
 		}
 	}
 	return fmt.Errorf("unreachable")
